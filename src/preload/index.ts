@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import { CHANNELS } from '../shared/contract.ts';
 
 // contextIsolation is on, so the renderer only ever sees what is explicitly
 // bridged here — never Node itself.
@@ -16,4 +17,15 @@ contextBridge.exposeInMainWorld('faceWorker', {
   sendReady: (error: string | null) => ipcRenderer.send('face:ready', error),
   sendResult: (id: number, faces: unknown, error: string | null) =>
     ipcRenderer.send('face:result', { id, faces, error }),
+});
+
+contextBridge.exposeInMainWorld('triage', {
+  pickFolder: (kind: string) => ipcRenderer.invoke(CHANNELS.pickFolder, kind),
+  startRun: (cfg: unknown) => ipcRenderer.invoke(CHANNELS.startRun, cfg),
+  cancelRun: () => ipcRenderer.send(CHANNELS.cancelRun),
+  onProgress: (cb: (p: unknown) => void) => {
+    const handler = (_e: unknown, p: unknown) => cb(p);
+    ipcRenderer.on(CHANNELS.progress, handler);
+    return () => { ipcRenderer.removeListener(CHANNELS.progress, handler); };
+  },
 });
