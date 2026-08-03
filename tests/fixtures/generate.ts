@@ -95,9 +95,15 @@ export async function generateFixtures(outDir: string): Promise<void> {
   // pixels — which is what a real burst is (identical subject, slight camera
   // movement). Re-rendering the pattern at an offset instead would change the
   // fine detail's phase, which is a different image, not a moved one.
+  //
+  // Built from its own scene, not from `base`. Cropping `base` would make every
+  // burst frame a near-duplicate of sharp.png too, so the burst group would
+  // swallow the sharpness fixtures and tests could not tell the two behaviours
+  // apart.
+  const burstBase = pattern({ seed: 7 });
   const BURST_W = W - 8;
   for (let i = 1; i <= 3; i++) {
-    await raw(base)
+    await raw(burstBase)
       .extract({ left: i * 2, top: 0, width: BURST_W, height: H })
       .png().toFile(join(outDir, `burst-${i}.png`));
   }
