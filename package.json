@@ -13,12 +13,14 @@
     "typecheck": "tsc --noEmit",
     "triage": "node --experimental-strip-types src/cli/index.ts",
     "fetch-model": "node scripts/fetch-model.mjs",
+    "postinstall": "node scripts/fetch-model.mjs",
     "dev": "electron-vite dev",
     "build:app": "electron-vite build",
     "start": "electron-vite preview",
     "smoke": "electron-vite build && PHOTO_TRIAGE_SMOKE=1 electron ."
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1",
     "exiftool-vendored": "37.1.0",
     "libheif-js": "^1.18.0",
     "react": "^19.2.8",
