@@ -7,3 +7,4 @@ out/
 .vite/
 coverage/
 tests/fixtures/generated/
+assets/models/
