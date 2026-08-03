@@ -16,13 +16,23 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
  * module loaders to get wrong, so the only trustworthy check is launching it.
  */
 describe('electron app', () => {
-  it('boots, loads the renderer and exits cleanly', async () => {
+  /**
+   * One launch asserts both boot and face detection. Booting Electron twice
+   * would double a ~30s test for no extra coverage — the smoke run exercises
+   * the renderer, the hidden face window, MediaPipe initialisation and the
+   * full IPC round trip in a single pass.
+   *
+   * `faces=0` on a blank image proves the pipeline is wired, NOT that eye
+   * detection is accurate. Only real photographs can show that, which is why
+   * the plan ends with a manual verification task.
+   */
+  it('boots, initialises MediaPipe and completes a detection round trip', async () => {
     const { stdout } = await run('npm', ['run', 'smoke'], {
       cwd: ROOT,
       env: { ...process.env, ELECTRON_DISABLE_SANDBOX: '1' },
       timeout: 180_000,
       maxBuffer: 10 * 1024 * 1024,
     });
-    expect(stdout).toContain('SMOKE_OK');
+    expect(stdout).toContain('SMOKE_OK faces=0');
   }, 240_000);
 });
