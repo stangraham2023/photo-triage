@@ -31,11 +31,10 @@ async function decodeHeif(absPath: string): Promise<WorkingImage> {
   // sharp's prebuilt libvips has libheif but no libde265, so HEVC-coded HEIC
   // (every iPhone photo) fails with a misleading "bad seek" error. WASM libheif
   // is the only cross-platform decoder that handles it.
-  const mod: any = await import('libheif-js/wasm-bundle');
-  const HeifDecoder = mod.HeifDecoder ?? mod.default?.HeifDecoder;
+  const { HeifDecoder } = await import('libheif-js/wasm-bundle');
   const buf = await readFile(absPath);
 
-  let images: any[];
+  let images: ReturnType<HeifDecoder['decode']>;
   try {
     images = new HeifDecoder().decode(buf);
   } catch (err) {
