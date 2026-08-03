@@ -6,3 +6,4 @@ out/
 .DS_Store
 .vite/
 coverage/
+tests/fixtures/generated/
