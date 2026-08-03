@@ -12,9 +12,15 @@ export const RAW_EXTENSIONS: ReadonlySet<string> = new Set([
 const HEIF_EXTENSIONS: ReadonlySet<string> = new Set(['heic', 'heif']);
 
 export class UnreadableError extends Error {
-  constructor(public readonly path: string, cause: string) {
+  // Declared and assigned explicitly rather than as a constructor parameter
+  // property: Node's --experimental-strip-types cannot compile those, and the
+  // CLI runs directly off the TypeScript sources.
+  readonly path: string;
+
+  constructor(path: string, cause: string) {
     super(`Cannot decode ${path}: ${cause}`);
     this.name = 'UnreadableError';
+    this.path = path;
   }
 }
 
