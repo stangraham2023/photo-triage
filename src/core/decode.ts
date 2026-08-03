@@ -34,7 +34,7 @@ async function decodeHeif(absPath: string): Promise<WorkingImage> {
   const { HeifDecoder } = await import('libheif-js/wasm-bundle');
   const buf = await readFile(absPath);
 
-  let images: ReturnType<HeifDecoder['decode']>;
+  let images: import('libheif-js/wasm-bundle').HeifImage[];
   try {
     images = new HeifDecoder().decode(buf);
   } catch (err) {
