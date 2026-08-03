@@ -6,23 +6,37 @@ modified — everything is copied.
 
 ## Status
 
-**Phase 1: analysis engine and CLI.** The desktop application, the review UI
-with live threshold sliders, and eye detection arrive in Phase 2.
+**Desktop app with eye detection — working.** Pick folders, watch progress,
+cancel mid-run, get sorted output.
 
-Eye detection is defined here as an interface with a null implementation, so
-CLI runs score blur, exposure and burst duplicates only. Nothing downstream
-changes when the real detector lands.
+Still to come: the review screen, where you see every decision with its reason,
+adjust strictness with live sliders, and override individual photos before
+anything is written to disk. Today the app sorts as soon as analysis finishes —
+use the dry-run checkbox to preview a run without copying.
 
 ## Requirements
 
-Node 22 or newer.
+Node 22 or newer. `npm install` downloads the face-detection model
+(3.7MB, checksum-verified), so the first install needs a network connection.
 
-## Usage
+## The desktop app
 
 ```
 npm install
+npm run dev
+```
+
+This is the one that detects closed eyes.
+
+## The command line
+
+```
 npm run triage -- --source ~/Pictures/shoot --staging ~/Pictures/keep --review ~/Pictures/check
 ```
+
+The CLI scores blur, exposure and burst duplicates but **not** eyes. MediaPipe
+requires a browser DOM — it throws `document is not defined` under plain Node —
+so eye detection only runs in the desktop app, which has one.
 
 | Flag | Meaning |
 |---|---|
@@ -57,6 +71,13 @@ score falls below its threshold.
 - **Exposure** — histogram clipping, mean luminance, and contrast spread.
   Highlights are punished harder than shadows, because clipped highlights are
   unrecoverable while a dark frame can usually be lifted.
+- **Eyes** — MediaPipe's per-eye blink signal, cross-checked against eyelid
+  geometry. A face takes the worse of its two eyes and a photo takes the worst
+  face in the frame, so one person blinking in a group of six decides it.
+  Openness is a continuous 0–1 score rather than a yes/no, so where "partially
+  closed" becomes a reject is set by the preset: `event` cuts at 0.35 (clearly
+  shut), `portrait` at 0.5 (also catches half-lidded). Faces narrower than 4% of
+  the frame are ignored as background strangers.
 - **Bursts** — perceptual hash within a capture-time window. The best frame in
   a group is kept and the rest are flagged as duplicates of it.
 
@@ -98,4 +119,10 @@ The one exception is a 586-byte HEVC-coded HEIC, which is committed as base64
 because no cross-platform library can *encode* HEVC to recreate it.
 
 `src/core/` is plain TypeScript with no Electron imports — a test enforces
-this — so the engine can be reused by the desktop app in Phase 2 unchanged.
+this — so the same engine backs both the CLI and the desktop app.
+
+Eye-detection *accuracy* is not covered by any automated test, and cannot be:
+MediaPipe needs a browser, and verifying a blink detector requires photographs
+of real people, which do not belong in a public repository. The test suite
+proves the pipeline is wired end to end (`SMOKE_OK faces=0` on a blank image);
+only real photos show whether it is right.
