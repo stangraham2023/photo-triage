@@ -42,12 +42,15 @@ A handful of known users on their own machines. Typical run is a few hundred to 
 |---|---|
 | Shell / packaging | Electron, electron-builder |
 | UI | React + Vite + TypeScript |
-| Image decode & resize | `sharp` (libvips) |
+| Image decode & resize | `sharp` (libvips) — JPEG, PNG, TIFF, WebP, AVIF |
+| HEIC/HEIF decode | `libheif-js` (WASM) — see R1; `sharp` cannot do this |
 | RAW preview + metadata | `exiftool-vendored` (bundles platform binaries, uses `-stay_open` batch mode) |
 | Face landmarks & eye state | MediaPipe Tasks Vision `FaceLandmarker`, WASM + WebGL, bundled offline |
 | Blur / exposure / hashing | Custom TypeScript over raw pixel buffers |
 | Score cache | NDJSON file — deliberately not SQLite, to avoid a second native dependency |
 | Tests | Vitest |
+
+Versions verified against the registry on 2026-08-03: `sharp` 0.35.3, `exiftool-vendored` 37.1.0 (ships ExifTool 13.59), `@mediapipe/tasks-vision` 1.0.1, `electron` 43.2.0, `electron-builder` 26.15.3, `vitest` 4.1.10.
 
 ### Why this stack
 
@@ -202,13 +205,17 @@ The release workflow includes the macOS notarization and Windows signing steps f
 
 ## Risks
 
-**R1 — HEIC decode support in `sharp`'s prebuilt binary.** HEIF decoding depends on how the shipped libvips was compiled. This must be verified on both platforms as the first task of implementation, before anything is built on top of it. Fallback: a WASM libheif decoder, accepting slower HEIC handling.
+**R1 — HEIC decode — RESOLVED 2026-08-03, spike performed.** `sharp` 0.35.3 **cannot decode HEIC pixels.** Its prebuilt binary bundles libheif 1.23.1 with the AV1 decoder (so AVIF works) but *without* libde265, so HEVC-coded HEIC — which is what every iPhone produces — fails. It reads HEIC metadata happily and reports `compression: 'hevc'`, then throws an unhelpful `bad seek to 1024` on pixel access. The misleading error matters: an implementer would waste hours reading it as file corruption rather than a missing codec.
+
+Resolution: HEIC and HEIF route to **`libheif-js`** (`libheif-js/wasm-bundle`), verified decoding a real HEVC-coded HEIC to correct RGBA. This is a pure-WASM package with no native dependency and no platform-specific build, so it costs nothing in packaging. It is slower than libvips, which is acceptable because HEIC is one format among several and analysis runs on a downscale.
+
+Note for awareness rather than action: HEVC decoding carries patent considerations. Bundling a WASM HEVC decoder in a freely distributed application is common practice, but it is worth knowing that it exists.
 
 **R2 — RAW embedded preview quality varies by camera.** Some bodies embed a full-resolution JPEG, others a small one, a few none at all. Mitigation: accept any preview at or above 1024px on the long edge; below that, fall back to the largest available and record reduced confidence in the report; with no preview at all, mark the file unsupported.
 
 **R3 — MediaPipe accuracy on small or profile faces.** Eye state on a face turned away from the camera is unreliable. Mitigation: the 4% minimum face size, and a confidence value carried into the reason chip so the user sees when a call is marginal.
 
-**R4 — Packaging native and binary assets.** `sharp` and the bundled exiftool binaries must be excluded from the asar archive via `asarUnpack`, and the MediaPipe WASM and `.task` model files must resolve from local paths rather than a CDN. Verified by a smoke test that runs the packaged application, not just the development build.
+**R4 — Packaging native and binary assets.** `sharp` and the bundled exiftool binaries must be excluded from the asar archive via `asarUnpack`. Partially de-risked by the same spike: `@mediapipe/tasks-vision` ships its WASM files inside the package (`node_modules/@mediapipe/tasks-vision/wasm/`), so `FilesetResolver` can be pointed at a local directory and never touches a CDN. The `face_landmarker.task` model file is *not* in the package and must be vendored into the repository under `assets/models/` rather than fetched at runtime. Verified by a smoke test that runs the packaged application, not just the development build.
 
 **R5 — Threshold defaults.** Shipped defaults are a starting point and will be wrong for some libraries. Mitigated structurally: the live threshold sliders mean the user can correct them per run without waiting for a re-analysis.
 
