@@ -6,13 +6,14 @@ modified — everything is copied.
 
 ## Status
 
-**Desktop app with eye detection — working.** Pick folders, watch progress,
-cancel mid-run, get sorted output.
+**Desktop app with eye detection and a review screen — working.**
 
-Still to come: the review screen, where you see every decision with its reason,
-adjust strictness with live sliders, and override individual photos before
-anything is written to disk. Today the app sorts as soon as analysis finishes —
-use the dry-run checkbox to preview a run without copying.
+Pick your folders and the app analyses them, writing nothing. You then see every
+photo with the reason it was flagged and the score behind it, drag sliders to
+move the line, click into any photo for a 100% crop of each detected face, and
+override anything you disagree with. **Nothing is copied until you press Apply.**
+
+Still to come: packaged installers for Mac and PC.
 
 ## Requirements
 
@@ -58,6 +59,21 @@ every score, so you can see exactly why a decision was made.
 | `event` | All checks at balanced thresholds |
 | `portrait` | Strict on faces and eyes, lenient on background blur |
 | `landscape` | Eye checks off entirely, blur and exposure strict |
+
+## The review screen
+
+The strictness sliders re-sort every photo the instant you drag them. That works
+because scoring and judging are separate stages: scoring is the expensive part
+and runs once, while turning scores into verdicts is pure arithmetic that runs
+in the window itself. So you can watch the boundary move across two thousand
+photos in real time instead of arguing with a number you cannot see.
+
+Overrides survive slider changes. If you rescue a photo by hand and then move a
+threshold, your decision stands.
+
+Clicking a photo opens a crop of each face it found, captioned with that face's
+eye score, and marks a call as *unsure* when the two eye measurements disagree.
+An eye verdict you cannot check is one you cannot trust.
 
 ## How it decides
 

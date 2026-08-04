@@ -22,7 +22,7 @@ const PRESET_HELP: Record<PresetName, string> = {
 
 export function Setup({ onStart }: { onStart: (cfg: RunConfig) => void }) {
   const [cfg, setCfg] = useState<Partial<RunConfig>>({
-    preset: 'event', recurse: true, dryRun: false,
+    preset: 'event', recurse: true,
   });
 
   const pick = async (kind: FolderKind) => {
@@ -72,18 +72,9 @@ export function Setup({ onStart }: { onStart: (cfg: RunConfig) => void }) {
         Include subfolders
       </label>
 
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={cfg.dryRun ?? false}
-          onChange={(e) => setCfg((c) => ({ ...c, dryRun: e.target.checked }))}
-        />
-        Dry run — analyse and report without copying anything
-      </label>
-
       <p className="notice">
-        Photos are sorted as soon as analysis finishes. The review screen, where
-        you can change decisions before anything is written, comes next.
+        Analysis writes nothing. You will see every decision, with the reason
+        behind it, and can change any of them before a single file is copied.
       </p>
 
       <button
@@ -91,7 +82,7 @@ export function Setup({ onStart }: { onStart: (cfg: RunConfig) => void }) {
         disabled={!canStart(cfg)}
         onClick={() => onStart(cfg as RunConfig)}
       >
-        Sort photos
+        Analyse photos
       </button>
     </main>
   );
