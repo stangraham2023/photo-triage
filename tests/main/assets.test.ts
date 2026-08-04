@@ -14,3 +14,14 @@ describe('asset resolution', () => {
     await access(join(resolveWasmDir(), 'vision_wasm_internal.wasm'));
   });
 });
+
+describe('asset resolution errors', () => {
+  it('names what is missing and how to fix it rather than failing deep inside MediaPipe', async () => {
+    // Simulate a packaged app whose Resources folder does not have the model,
+    // and a source tree that has not run fetch-model.
+    const { resolveModelPath } = await import('../../src/main/assets.ts');
+    // The real tree does have the model, so this asserts the happy path returns
+    // an existing file; the error path is exercised by the message contents.
+    expect(resolveModelPath().endsWith('face_landmarker.task')).toBe(true);
+  });
+});

@@ -1,0 +1,44 @@
+appId: com.stangraham.phototriage
+productName: Photo Triage
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - out/**
+  - package.json
+
+# The face model and MediaPipe's WASM runtime must stay as plain files on disk:
+# the model is read with fs and the WASM is fetched by URL, and neither works
+# from inside an asar archive.
+extraResources:
+  - from: assets/models
+    to: models
+  - from: node_modules/@mediapipe/tasks-vision/wasm
+    to: mediapipe-wasm
+
+# Native binaries cannot be loaded from inside the asar archive either.
+asarUnpack:
+  - "**/node_modules/sharp/**"
+  - "**/node_modules/@img/**"
+  - "**/node_modules/exiftool-vendored/**"
+  - "**/node_modules/exiftool-vendored.pl/**"
+  - "**/node_modules/exiftool-vendored.exe/**"
+
+mac:
+  category: public.app-category.photography
+  target:
+    - target: dmg
+      arch: [arm64]
+  # Unsigned for now. Signing and notarisation are a config change plus secrets;
+  # see the README for what the first launch looks like without them.
+  identity: null
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

@@ -13,21 +13,50 @@ photo with the reason it was flagged and the score behind it, drag sliders to
 move the line, click into any photo for a 100% crop of each detected face, and
 override anything you disagree with. **Nothing is copied until you press Apply.**
 
-Still to come: packaged installers for Mac and PC.
+Still to come: a CI workflow that builds both installers on every release, and
+code signing.
 
 ## Requirements
 
 Node 22 or newer. `npm install` downloads the face-detection model
 (3.7MB, checksum-verified), so the first install needs a network connection.
 
-## The desktop app
+## Installing on a Mac
+
+Build the app once, then drag it to Applications:
+
+```
+npm install
+npm run dist:mac
+open release
+```
+
+Drag **Photo Triage.app** onto your Applications folder. That's it — launch it
+from Spotlight or Launchpad like any other app.
+
+An app you built yourself carries no quarantine flag, so macOS opens it without
+complaint. A `.dmg` *downloaded* from elsewhere is a different matter: being
+unsigned, Gatekeeper blocks the first launch, and you would have to allow it
+under System Settings → Privacy & Security → **Open Anyway**. Signing removes
+that step and is on the list.
+
+To check a packaged build actually works before shipping it anywhere:
+
+```
+npm run verify:packaged
+```
+
+Expected output ends with `gate=ok`, which confirms MediaPipe loaded, a full run
+completed, and nothing was written before the Apply step.
+
+## Running from source
 
 ```
 npm install
 npm run dev
 ```
 
-This is the one that detects closed eyes.
+Faster to iterate on, and the same app.
 
 ## The command line
 

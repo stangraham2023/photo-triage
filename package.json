@@ -17,7 +17,10 @@
     "dev": "electron-vite dev",
     "build:app": "electron-vite build",
     "start": "electron-vite preview",
-    "smoke": "electron-vite build && PHOTO_TRIAGE_SMOKE=1 electron ."
+    "smoke": "electron-vite build && PHOTO_TRIAGE_SMOKE=1 electron .",
+    "dist:mac": "electron-vite build && electron-builder --mac",
+    "dist:win": "electron-vite build && electron-builder --win",
+    "verify:packaged": "PHOTO_TRIAGE_SMOKE=1 PHOTO_TRIAGE_SMOKE_SOURCE=\"$PWD/tests/fixtures/generated\" \"release/mac-arm64/Photo Triage.app/Contents/MacOS/Photo Triage\""
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",
@@ -34,10 +37,13 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "jsdom": "^30.0.1",
     "typescript": "^5.6.0",
     "vite": "^7.3.6",
     "vitest": "^4.1.10"
-  }
+  },
+  "description": "Sorts photos into keepers and rejects, flagging blur, closed eyes, bad exposure and burst duplicates",
+  "author": "stangraham2023"
 }
