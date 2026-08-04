@@ -5,6 +5,7 @@ import type { Decision, PhotoRecord } from '../../src/core/types.ts';
 const rec = (id: string): PhotoRecord => ({
   file: { absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: 0 },
   meta: { captureTimeMs: 0, orientation: 1, cameraModel: 'Test Cam' },
+  faces: [],
   scores: {
     blurGlobal: 70, blurSharpestRegion: 72, blurFaceMin: null,
     exposure: 80, eyeMin: null, faceCount: 0, phash: '0000000000000000',

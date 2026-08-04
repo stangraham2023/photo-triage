@@ -21,6 +21,7 @@ export async function analyzePhoto(
   return {
     file,
     meta,
+    faces,
     scores: {
       blurGlobal: blur.global,
       blurSharpestRegion: blur.sharpestRegion,

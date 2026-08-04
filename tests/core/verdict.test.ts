@@ -12,6 +12,7 @@ const scores = (over: Partial<Scores> = {}): Scores => ({
 const rec = (id: string, over: Partial<Scores> = {}): PhotoRecord => ({
   file: { absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: 0 },
   meta: { captureTimeMs: 0, orientation: 1, cameraModel: null },
+  faces: [],
   scores: scores(over),
 });
 

@@ -1,5 +1,5 @@
 import type { PhotoRecord, PhotoId, Scores, Thresholds } from './types.ts';
-import { hammingDistance } from './scores/phash.ts';
+import { hammingDistance } from './scores/hamming.ts';
 
 export interface BurstGroup {
   id: string;
