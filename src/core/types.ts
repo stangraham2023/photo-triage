@@ -69,6 +69,12 @@ export interface PhotoRecord {
   file: ScannedFile;
   meta: PhotoMetadata;
   scores: Scores;
+  /**
+   * Significant faces only, in detector order. Carried through so the review
+   * screen can show a crop of the face behind an "eyes closed" verdict — a
+   * blink call the user cannot check is a blink call they cannot trust.
+   */
+  faces: FaceResult[];
 }
 
 export type ReasonCode = 'blur' | 'eyes-closed' | 'exposure' | 'duplicate';

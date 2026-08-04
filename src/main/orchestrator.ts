@@ -1,15 +1,17 @@
 import { scanDirectory } from '../core/scan.ts';
 import { analyzePhoto } from '../core/analyze.ts';
-import { clusterBursts } from '../core/cluster.ts';
-import { decideAll } from '../core/verdict.ts';
+import { clusterBursts, type BurstGroup } from '../core/cluster.ts';
 import { PRESETS } from '../core/presets.ts';
 import { buildPlan, executePlan, checkFreeSpace } from '../core/apply.ts';
-import { summarize, toCsv, toHtml, type Summary } from '../core/report.ts';
+import { summarize, toCsv, toHtml } from '../core/report.ts';
 import { UnreadableError } from '../core/decode.ts';
 import type { MetadataReader } from '../core/metadata.ts';
-import type { Decision, FaceDetector, PhotoRecord, PresetName, ScannedFile } from '../core/types.ts';
+import type {
+  Decision, FaceDetector, PhotoRecord, PresetName, ScannedFile,
+} from '../core/types.ts';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { writeThumbnail, thumbPathFor } from './thumbnails.ts';
 
 export interface RunProgress {
   phase: 'scanning' | 'analysing' | 'copying';
@@ -18,31 +20,59 @@ export interface RunProgress {
   current: string;
 }
 
-export interface RunOptions {
+export interface AnalyzeOptions {
   source: string;
-  staging: string;
-  review: string;
   preset: PresetName;
   recurse: boolean;
-  dryRun: boolean;
   detector: FaceDetector;
   reader: MetadataReader;
+  /** Root under which each run gets its own thumbnail directory. */
+  thumbRoot: string;
   signal?: AbortSignal;
   onProgress?: (p: RunProgress) => void;
 }
 
-export interface RunResult {
-  summary: Summary;
-  groups: number;
-  unreadable: number;
-  manifestPath: string | null;
-  reportDir: string | null;
+export interface AnalysisResult {
+  runId: string;
+  records: PhotoRecord[];
+  unreadable: ScannedFile[];
+  groups: BurstGroup[];
   cancelled: boolean;
 }
 
-export async function runTriage(opts: RunOptions): Promise<RunResult> {
+export interface ApplyOptions {
+  runId: string;
+  files: ScannedFile[];
+  records: PhotoRecord[];
+  decisions: Decision[];
+  staging: string;
+  review: string;
+  onProgress?: (p: RunProgress) => void;
+}
+
+export interface ApplyResult {
+  manifestPath: string;
+  reportDir: string;
+  copied: number;
+  skipped: number;
+}
+
+function makeRunId(now: Date): string {
+  return `run-${now.toISOString().replace(/[:.]/g, '-')}`;
+}
+
+/**
+ * Analyses a folder and writes NOTHING to the destinations.
+ *
+ * Separating this from applyDecisions is what makes the review gate real: after
+ * this returns, the user can change any verdict, and the decisions that reach
+ * disk are the ones they approved rather than the ones this computed.
+ */
+export async function analyzeRun(opts: AnalyzeOptions): Promise<AnalysisResult> {
   const t = PRESETS[opts.preset];
   const cancelled = () => opts.signal?.aborted === true;
+  const runId = makeRunId(new Date());
+  const thumbDir = join(opts.thumbRoot, runId);
 
   opts.onProgress?.({ phase: 'scanning', done: 0, total: 0, current: opts.source });
   const scan = await scanDirectory(opts.source, { recurse: opts.recurse });
@@ -53,7 +83,9 @@ export async function runTriage(opts: RunOptions): Promise<RunResult> {
   for (const [i, file] of scan.images.entries()) {
     if (cancelled()) break;
     try {
-      records.push(await analyzePhoto(file, opts.reader, opts.detector));
+      records.push(await analyzePhoto(file, opts.reader, opts.detector, {
+        onWorkingImage: (img) => writeThumbnail(img, thumbPathFor(thumbDir, file.relPath)),
+      }));
     } catch (err) {
       if (err instanceof UnreadableError) unreadable.push(file);
       else throw err;
@@ -63,23 +95,27 @@ export async function runTriage(opts: RunOptions): Promise<RunResult> {
     });
   }
 
-  const groups = clusterBursts(records, t);
-  const decisions: Decision[] = decideAll(records, t, groups);
-  for (const f of unreadable) {
-    decisions.push({ id: f.relPath, verdict: 'unreadable', reasons: [], groupId: null, isGroupKeeper: true });
-  }
-  const summary = summarize(decisions);
+  return {
+    runId,
+    records,
+    unreadable,
+    groups: clusterBursts(records, t),
+    cancelled: cancelled(),
+  };
+}
 
-  // Cancelling must leave the destinations exactly as they were. This returns
-  // before checkFreeSpace, which would otherwise create the staging folder.
-  if (cancelled() || opts.dryRun) {
-    return {
-      summary, groups: groups.length, unreadable: unreadable.length,
-      manifestPath: null, reportDir: null, cancelled: cancelled(),
-    };
-  }
+/**
+ * Copies according to the decisions it is handed.
+ *
+ * It deliberately does not recompute them: by this point the user may have
+ * overridden any of them, and recomputing would silently discard those edits.
+ */
+export async function applyDecisions(opts: ApplyOptions): Promise<ApplyResult> {
+  const plan = buildPlan(opts.files, opts.decisions, {
+    staging: opts.staging,
+    review: opts.review,
+  }, new Date());
 
-  const plan = buildPlan(scan.images, decisions, { staging: opts.staging, review: opts.review });
   const space = await checkFreeSpace(plan);
   if (!space.ok) {
     throw new Error(
@@ -92,12 +128,15 @@ export async function runTriage(opts: RunOptions): Promise<RunResult> {
   );
 
   const reportDir = dirname(manifest.manifestPath);
+  const summary = summarize(opts.decisions);
   await mkdir(reportDir, { recursive: true });
-  await writeFile(join(reportDir, 'report.csv'), toCsv(records, decisions), 'utf8');
-  await writeFile(join(reportDir, 'report.html'), toHtml(records, decisions, summary), 'utf8');
+  await writeFile(join(reportDir, 'report.csv'), toCsv(opts.records, opts.decisions), 'utf8');
+  await writeFile(join(reportDir, 'report.html'), toHtml(opts.records, opts.decisions, summary), 'utf8');
 
   return {
-    summary, groups: groups.length, unreadable: unreadable.length,
-    manifestPath: manifest.manifestPath, reportDir, cancelled: false,
+    manifestPath: manifest.manifestPath,
+    reportDir,
+    copied: manifest.operations.length,
+    skipped: manifest.skipped,
   };
 }

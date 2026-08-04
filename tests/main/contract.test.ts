@@ -8,7 +8,15 @@ describe('IPC contract', () => {
     }
   });
 
-  it('exposes exactly the four channels the renderer needs', () => {
-    expect(Object.keys(CHANNELS).sort()).toEqual(['cancelRun', 'pickFolder', 'progress', 'startRun']);
+  it('exposes exactly the channels the renderer needs', () => {
+    expect(Object.keys(CHANNELS).sort()).toEqual([
+      'applyDecisions', 'cancelRun', 'pickFolder', 'progress', 'startAnalysis',
+    ]);
+  });
+
+  it('keeps analysis and apply as separate channels', () => {
+    // If these ever merged, analysis would regain the authority to write, and
+    // the review gate would be decorative.
+    expect(CHANNELS.startAnalysis).not.toBe(CHANNELS.applyDecisions);
   });
 });

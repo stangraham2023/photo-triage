@@ -21,7 +21,8 @@ contextBridge.exposeInMainWorld('faceWorker', {
 
 contextBridge.exposeInMainWorld('triage', {
   pickFolder: (kind: string) => ipcRenderer.invoke(CHANNELS.pickFolder, kind),
-  startRun: (cfg: unknown) => ipcRenderer.invoke(CHANNELS.startRun, cfg),
+  startAnalysis: (cfg: unknown) => ipcRenderer.invoke(CHANNELS.startAnalysis, cfg),
+  applyDecisions: (payload: unknown) => ipcRenderer.invoke(CHANNELS.applyDecisions, payload),
   cancelRun: () => ipcRenderer.send(CHANNELS.cancelRun),
   onProgress: (cb: (p: unknown) => void) => {
     const handler = (_e: unknown, p: unknown) => cb(p);
