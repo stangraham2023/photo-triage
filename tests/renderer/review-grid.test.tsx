@@ -12,17 +12,23 @@ const scores = (over: Partial<Scores> = {}): Scores => ({
 });
 
 const rec = (id: string, over: Partial<Scores> = {}, faces: PhotoRecord['faces'] = []): PhotoRecord => ({
-  file: { absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: 0 },
+  file: { absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: 0, onDisk: true },
   meta: { captureTimeMs: 0, orientation: 1, cameraModel: null },
   faces,
   scores: scores(over),
 });
 
-const payload = (records: PhotoRecord[], unreadable: string[] = []): AnalysisPayload => ({
+const file = (id: string) =>
+  ({ absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: 0, onDisk: true });
+
+const payload = (
+  records: PhotoRecord[], unreadable: string[] = [], notDownloaded: string[] = [],
+): AnalysisPayload => ({
   runId: 'run-1',
   thumbUrls: Object.fromEntries(records.map((r) => [r.file.relPath, `triage-thumb://run-1/${r.file.relPath}.jpg`])),
   records,
-  unreadable: unreadable.map((id) => ({ absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: 0 })),
+  unreadable: unreadable.map(file),
+  notDownloaded: notDownloaded.map((id) => ({ ...file(id), onDisk: false })),
   groups: [],
   cancelled: false,
 });

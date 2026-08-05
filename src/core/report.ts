@@ -5,14 +5,18 @@ export interface Summary {
   good: number;
   rejected: number;
   unreadable: number;
+  notDownloaded: number;
   byReason: Record<string, number>;
 }
 
 export function summarize(decisions: Decision[]): Summary {
-  const s: Summary = { total: decisions.length, good: 0, rejected: 0, unreadable: 0, byReason: {} };
+  const s: Summary = {
+    total: decisions.length, good: 0, rejected: 0, unreadable: 0, notDownloaded: 0, byReason: {},
+  };
   for (const d of decisions) {
     if (d.verdict === 'good') s.good++;
     else if (d.verdict === 'rejected') s.rejected++;
+    else if (d.verdict === 'not-downloaded') s.notDownloaded++;
     else s.unreadable++;
     for (const r of d.reasons) s.byReason[r.code] = (s.byReason[r.code] ?? 0) + 1;
   }

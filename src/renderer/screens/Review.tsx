@@ -95,6 +95,24 @@ export function Review({ payload, initialThresholds, onApply, onCancel }: Review
         {section('Keepers', 'good', decisions.filter((d) => d.verdict === 'good'))}
         {section('Flagged', 'rejected', decisions.filter((d) => d.verdict === 'rejected'))}
         {section('Unreadable', 'unreadable', decisions.filter((d) => d.verdict === 'unreadable'))}
+
+        {c.notDownloaded > 0 && (
+          <section>
+            <h2>Not downloaded <span className="count">{c.notDownloaded}</span></h2>
+            <p className="notice">
+              These are stored in the cloud by iCloud or OneDrive — the file name
+              is on your Mac but the photo itself is not. They were skipped
+              rather than opened, because opening one downloads it. To include
+              them, select them in Finder, choose <strong>Download Now</strong>,
+              and run the analysis again.
+            </p>
+            <div className="grid">
+              {decisions.filter((d) => d.verdict === 'not-downloaded').map((d) => (
+                <PlaceholderCard key={d.id} id={d.id} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {zoomRecord && zoomDecision && (
@@ -108,6 +126,18 @@ export function Review({ payload, initialThresholds, onApply, onCancel }: Review
         />
       )}
     </div>
+  );
+}
+
+/** A cloud placeholder was never opened, so there is no thumbnail to show. */
+function PlaceholderCard({ id }: { id: PhotoId }) {
+  return (
+    <figure className="card card-unreadable" data-testid={`card-${id}`}>
+      <figcaption>
+        <div className="filename" title={id}>{id}</div>
+        <div className="chips"><span className="chip">stored in the cloud</span></div>
+      </figcaption>
+    </figure>
   );
 }
 

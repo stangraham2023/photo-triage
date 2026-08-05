@@ -10,8 +10,7 @@ const reader = new MetadataReader();
 afterAll(() => reader.close());
 
 const file = (name: string): ScannedFile => ({
-  absPath: join(FIXTURE_DIR, name), relPath: name, ext: 'png', bytes: 1, mtimeMs: 0,
-});
+  absPath: join(FIXTURE_DIR, name), relPath: name, ext: 'png', bytes: 1, mtimeMs: 0, onDisk: true });
 
 describe('analyzePhoto face reporting', () => {
   it('keeps the boxes of significant faces', async () => {

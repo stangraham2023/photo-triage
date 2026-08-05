@@ -68,10 +68,16 @@ async function main(): Promise<number> {
   try {
     const scan = await scanDirectory(source, { recurse: !values['no-recurse'] });
     console.log(`Found ${scan.images.length} images (${scan.skipped} non-image files ignored).`);
+    if (scan.notDownloaded > 0) {
+      console.log(
+        `  ${scan.notDownloaded} are stored in the cloud and not on this Mac — skipping them.\n` +
+        '  Select them in Finder and choose "Download Now" to include them.',
+      );
+    }
     if (scan.images.length === 0) return 0;
 
     const { records, unreadable } = await analyzeAll(
-      scan.images, reader, new NullFaceDetector(),
+      scan.images.filter((f) => f.onDisk), reader, new NullFaceDetector(),
       (done, total, current) => {
         process.stdout.write(`\r  analysing ${done}/${total}  ${current.slice(0, 50).padEnd(50)}`);
       },
@@ -83,9 +89,15 @@ async function main(): Promise<number> {
     for (const f of unreadable) {
       decisions.push({ id: f.relPath, verdict: 'unreadable', reasons: [], groupId: null, isGroupKeeper: true });
     }
+    for (const f of scan.images.filter((x) => !x.onDisk)) {
+      decisions.push({ id: f.relPath, verdict: 'not-downloaded', reasons: [], groupId: null, isGroupKeeper: true });
+    }
 
     const summary = summarize(decisions);
-    console.log(`\n  ${summary.good} good, ${summary.rejected} rejected, ${summary.unreadable} unreadable`);
+    console.log(
+      `\n  ${summary.good} good, ${summary.rejected} rejected, ` +
+      `${summary.unreadable} unreadable, ${summary.notDownloaded} not downloaded`,
+    );
     for (const [reason, count] of Object.entries(summary.byReason)) {
       console.log(`    ${reason}: ${count}`);
     }

@@ -7,6 +7,12 @@ export interface ScannedFile {
   ext: string;          // lowercase, no dot
   bytes: number;
   mtimeMs: number;
+  /**
+   * False when the file is a cloud placeholder — iCloud or OneDrive shows a
+   * name and a size, but the bytes live on a server. Reading one would make
+   * macOS download it, so these are skipped rather than analysed.
+   */
+  onDisk: boolean;
 }
 
 export interface PhotoMetadata {
@@ -87,7 +93,7 @@ export interface Reason {
   threshold: number;
 }
 
-export type Verdict = 'good' | 'rejected' | 'unreadable';
+export type Verdict = 'good' | 'rejected' | 'unreadable' | 'not-downloaded';
 
 export interface Decision {
   id: PhotoId;

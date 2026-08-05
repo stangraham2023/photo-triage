@@ -3,7 +3,7 @@ import { toCsv, summarize, toHtml } from '../../src/core/report.ts';
 import type { Decision, PhotoRecord } from '../../src/core/types.ts';
 
 const rec = (id: string): PhotoRecord => ({
-  file: { absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: 0 },
+  file: { absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: 0, onDisk: true },
   meta: { captureTimeMs: 0, orientation: 1, cameraModel: 'Test Cam' },
   faces: [],
   scores: {
