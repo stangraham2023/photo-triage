@@ -13,17 +13,23 @@ const scores = (over: Partial<Scores> = {}): Scores => ({
 });
 
 const rec = (id: string, over: Partial<Scores> = {}, t = 0): PhotoRecord => ({
-  file: { absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: t },
+  file: { absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: t, onDisk: true },
   meta: { captureTimeMs: t, orientation: 1, cameraModel: null },
   faces: [],
   scores: scores(over),
 });
 
-const payload = (records: PhotoRecord[], unreadable: string[] = []): AnalysisPayload => ({
+const file = (id: string) =>
+  ({ absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: 0, onDisk: true });
+
+const payload = (
+  records: PhotoRecord[], unreadable: string[] = [], notDownloaded: string[] = [],
+): AnalysisPayload => ({
   runId: 'run-1',
   thumbUrls: Object.fromEntries(records.map((r) => [r.file.relPath, `triage-thumb://run-1/${r.file.relPath}.jpg`])),
   records,
-  unreadable: unreadable.map((id) => ({ absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: 0 })),
+  unreadable: unreadable.map(file),
+  notDownloaded: notDownloaded.map((id) => ({ ...file(id), onDisk: false })),
   groups: [],
   cancelled: false,
 });
@@ -141,7 +147,7 @@ describe('counts', () => {
       T,
     );
     s = applyOverride(s, 'b.jpg', 'good');
-    expect(counts(s)).toEqual({ good: 2, rejected: 0, unreadable: 1, overridden: 1 });
+    expect(counts(s)).toEqual({ good: 2, rejected: 0, unreadable: 1, notDownloaded: 0, overridden: 1 });
   });
 });
 
@@ -171,5 +177,22 @@ describe('groups in state', () => {
     ]);
     expect(recompute(p, T).groups[0]!.memberIds).toHaveLength(2);
     expect(recompute(p, { ...T, burstHammingMax: 1 }).groups).toHaveLength(0);
+  });
+});
+
+describe('cloud placeholders', () => {
+  it('gets its own verdict rather than being called unreadable', () => {
+    const s = recompute(payload([], [], ['offloaded.jpg']), T);
+    expect(s.decisions[0]!.verdict).toBe('not-downloaded');
+  });
+
+  it('cannot be overridden into a keeper — there is nothing to copy', () => {
+    const s = applyOverride(recompute(payload([], [], ['offloaded.jpg']), T), 'offloaded.jpg', 'good');
+    expect(effectiveDecisions(s)[0]!.verdict).toBe('not-downloaded');
+  });
+
+  it('is counted apart from unreadable files', () => {
+    const s = recompute(payload([rec('a.jpg')], ['broken.jpg'], ['offloaded.jpg']), T);
+    expect(counts(s)).toMatchObject({ good: 1, unreadable: 1, notDownloaded: 1 });
   });
 });

@@ -23,15 +23,23 @@ export interface ReviewState {
  * Unreadable photos have no scores to threshold, and calling them "good" would
  * put a file that cannot be decoded into the keepers pile.
  */
-function isUnreadable(state: { payload: AnalysisPayload }, id: PhotoId): boolean {
-  return state.payload.unreadable.some((f) => f.relPath === id);
+/** Neither an undecodable file nor an absent one can be argued into a keeper. */
+function isFixed(state: { payload: AnalysisPayload }, id: PhotoId): boolean {
+  return state.payload.unreadable.some((f) => f.relPath === id)
+    || state.payload.notDownloaded.some((f) => f.relPath === id);
 }
 
-function unreadableDecisions(payload: AnalysisPayload): Decision[] {
-  return payload.unreadable.map((f) => ({
-    id: f.relPath, verdict: 'unreadable' as const,
-    reasons: [], groupId: null, isGroupKeeper: true,
-  }));
+function fixedDecisions(payload: AnalysisPayload): Decision[] {
+  return [
+    ...payload.unreadable.map((f) => ({
+      id: f.relPath, verdict: 'unreadable' as const,
+      reasons: [], groupId: null, isGroupKeeper: true,
+    })),
+    ...payload.notDownloaded.map((f) => ({
+      id: f.relPath, verdict: 'not-downloaded' as const,
+      reasons: [], groupId: null, isGroupKeeper: true,
+    })),
+  ];
 }
 
 /**
@@ -52,7 +60,7 @@ export function recompute(
     : [];
   const decisions = [
     ...decideAll(payload.records, thresholds, groups),
-    ...unreadableDecisions(payload),
+    ...fixedDecisions(payload),
   ];
   return { payload, thresholds, groups, overrides: new Map(overrides), decisions };
 }
@@ -62,7 +70,7 @@ export function buildReviewState(payload: AnalysisPayload, thresholds: Threshold
 }
 
 export function applyOverride(state: ReviewState, id: PhotoId, verdict: Verdict): ReviewState {
-  if (isUnreadable(state, id)) return state;
+  if (isFixed(state, id)) return state;
   const overrides = new Map(state.overrides);
   overrides.set(id, verdict);
   return { ...state, overrides };
@@ -96,14 +104,16 @@ export interface ReviewCounts {
   good: number;
   rejected: number;
   unreadable: number;
+  notDownloaded: number;
   overridden: number;
 }
 
 export function counts(state: ReviewState): ReviewCounts {
-  const c: ReviewCounts = { good: 0, rejected: 0, unreadable: 0, overridden: 0 };
+  const c: ReviewCounts = { good: 0, rejected: 0, unreadable: 0, notDownloaded: 0, overridden: 0 };
   for (const d of effectiveDecisions(state)) {
     if (d.verdict === 'good') c.good++;
     else if (d.verdict === 'rejected') c.rejected++;
+    else if (d.verdict === 'not-downloaded') c.notDownloaded++;
     else c.unreadable++;
     if (isOverridden(state, d.id)) c.overridden++;
   }

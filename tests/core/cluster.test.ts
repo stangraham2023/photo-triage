@@ -9,7 +9,7 @@ const scores = (over: Partial<Scores> = {}): Scores => ({
 });
 
 const rec = (id: string, phash: string, t: number, over: Partial<Scores> = {}): PhotoRecord => ({
-  file: { absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: t },
+  file: { absPath: '/' + id, relPath: id, ext: 'jpg', bytes: 1, mtimeMs: t, onDisk: true },
   meta: { captureTimeMs: t, orientation: 1, cameraModel: null },
   faces: [],
   scores: scores({ phash, ...over }),

@@ -18,6 +18,7 @@ export interface AnalysisPayload {
   thumbUrls: Record<PhotoId, string>;
   records: PhotoRecord[];
   unreadable: ScannedFile[];
+  notDownloaded: ScannedFile[];
   groups: BurstGroup[];
   cancelled: boolean;
 }

@@ -1,6 +1,7 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join, relative, extname } from 'node:path';
 import type { ScannedFile } from './types.ts';
+import { looksNotDownloaded, confirmNotDownloaded } from './cloudFiles.ts';
 
 export const SUPPORTED_EXTENSIONS: ReadonlySet<string> = new Set([
   'jpg', 'jpeg', 'jpe', 'jfif', 'png', 'tif', 'tiff', 'webp', 'avif',
@@ -12,6 +13,8 @@ export const SUPPORTED_EXTENSIONS: ReadonlySet<string> = new Set([
 export interface ScanResult {
   images: ScannedFile[];
   skipped: number;
+  /** How many of `images` are cloud placeholders rather than real files. */
+  notDownloaded: number;
 }
 
 export async function scanDirectory(
@@ -20,6 +23,7 @@ export async function scanDirectory(
 ): Promise<ScanResult> {
   const recurse = opts.recurse ?? true;
   const images: ScannedFile[] = [];
+  const suspects: ScannedFile[] = [];
   let skipped = 0;
 
   async function walk(dir: string): Promise<void> {
@@ -40,16 +44,30 @@ export async function scanDirectory(
         continue;
       }
       const s = await stat(abs);
-      images.push({
+      const file: ScannedFile = {
         absPath: abs,
         relPath: relative(root, abs),
         ext,
         bytes: s.size,
         mtimeMs: s.mtimeMs,
-      });
+        onDisk: true,
+      };
+      if (looksNotDownloaded({ size: s.size, blocks: s.blocks })) suspects.push(file);
+      images.push(file);
     }
   }
 
   await walk(root);
-  return { images, skipped };
+
+  // Confirm the cheap prefilter's suspicions in one batch. A compressed file
+  // also reports zero blocks, so without this step ordinary photos would be
+  // written off as absent.
+  if (suspects.length > 0) {
+    const confirmed = await confirmNotDownloaded(suspects.map((f) => f.absPath));
+    for (const f of suspects) {
+      if (confirmed.has(f.absPath)) f.onDisk = false;
+    }
+  }
+
+  return { images, skipped, notDownloaded: images.filter((f) => !f.onDisk).length };
 }

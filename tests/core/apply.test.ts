@@ -8,7 +8,7 @@ import type { Decision, ScannedFile } from '../../src/core/types.ts';
 let src: string, staging: string, review: string;
 
 const rec = (rel: string): ScannedFile =>
-  ({ absPath: join(src, rel), relPath: rel, ext: 'jpg', bytes: 3, mtimeMs: 0 });
+  ({ absPath: join(src, rel), relPath: rel, ext: 'jpg', bytes: 3, mtimeMs: 0, onDisk: true });
 
 const dec = (id: string, verdict: Decision['verdict']): Decision => ({
   id, verdict, reasons: [], groupId: null, isGroupKeeper: true,

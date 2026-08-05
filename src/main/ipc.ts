@@ -61,7 +61,7 @@ export function registerIpc(getWindows: () => { main: BrowserWindow; face: Brows
       lastRun = {
         runId: result.runId,
         records: result.records,
-        files: [...result.records.map((r) => r.file), ...result.unreadable],
+        files: [...result.records.map((r) => r.file), ...result.unreadable, ...result.notDownloaded],
         staging: cfg.staging,
         review: cfg.review,
       };
@@ -73,6 +73,7 @@ export function registerIpc(getWindows: () => { main: BrowserWindow; face: Brows
         ),
         records: result.records,
         unreadable: result.unreadable,
+        notDownloaded: result.notDownloaded,
         groups: result.groups,
         cancelled: result.cancelled,
       };

@@ -36,3 +36,11 @@ describe('scanDirectory', () => {
     expect(r.images.map((f) => f.relPath).sort()).toEqual(['a.jpg', 'b.HEIC']);
   });
 });
+
+describe('cloud placeholders', () => {
+  it('marks an ordinary local file as on disk', async () => {
+    const r = await scanDirectory(root);
+    expect(r.images.every((f) => f.onDisk)).toBe(true);
+    expect(r.notDownloaded).toBe(0);
+  });
+});

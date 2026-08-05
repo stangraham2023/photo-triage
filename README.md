@@ -149,6 +149,17 @@ fails with a misleading `bad seek` error that reads like file corruption.
   ones get a ` (2)` suffix.
 - Corrupt or undecodable files go to `<review>/_unreadable/` and appear in the
   report. They are never silently dropped.
+- **Cloud placeholders are skipped, not opened.** If iCloud or OneDrive has
+  offloaded a photo, your Mac holds its name and size but not its data. Photo
+  Triage detects this from file metadata and leaves it alone — reading one would
+  make macOS download it, which for an offloaded library could mean gigabytes
+  you never asked for. Such files are reported as *not downloaded*, kept
+  distinct from corrupt ones, and never copied. To include them, select them in
+  Finder, choose **Download Now**, and analyse again.
+
+  Detection is macOS-only. On Windows, Node reports zero allocated blocks for
+  every file, so the same check would write off an entire library; until that
+  can be done properly, Windows treats all files as present.
 - `--undo` removes exactly the files a run created, and leaves alone anything
   whose modification time has changed since — you may have edited it.
 

@@ -63,6 +63,9 @@ export function buildPlan(
   for (const d of decisions) {
     const file = byId.get(d.id);
     if (!file) continue;
+    // Copying a cloud placeholder would force it to download, then write a copy
+    // of a file the user chose to keep off their disk. Leave it where it is.
+    if (d.verdict === 'not-downloaded' || !file.onDisk) continue;
     const root =
       d.verdict === 'good' ? dests.staging
       : d.verdict === 'unreadable' ? join(dests.review, '_unreadable')

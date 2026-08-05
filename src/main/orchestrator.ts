@@ -36,6 +36,8 @@ export interface AnalysisResult {
   runId: string;
   records: PhotoRecord[];
   unreadable: ScannedFile[];
+  /** Cloud placeholders. Never opened, because opening one downloads it. */
+  notDownloaded: ScannedFile[];
   groups: BurstGroup[];
   cancelled: boolean;
 }
@@ -79,9 +81,20 @@ export async function analyzeRun(opts: AnalyzeOptions): Promise<AnalysisResult> 
 
   const records: PhotoRecord[] = [];
   const unreadable: ScannedFile[] = [];
+  const notDownloaded: ScannedFile[] = [];
 
   for (const [i, file] of scan.images.entries()) {
     if (cancelled()) break;
+    // Skipped before any read: touching a placeholder makes macOS fetch it,
+    // which for an offloaded library could mean gigabytes the user never asked
+    // to download.
+    if (!file.onDisk) {
+      notDownloaded.push(file);
+      opts.onProgress?.({
+        phase: 'analysing', done: i + 1, total: scan.images.length, current: file.relPath,
+      });
+      continue;
+    }
     try {
       records.push(await analyzePhoto(file, opts.reader, opts.detector, {
         onWorkingImage: (img) => writeThumbnail(img, thumbPathFor(thumbDir, file.relPath)),
@@ -99,6 +112,7 @@ export async function analyzeRun(opts: AnalyzeOptions): Promise<AnalysisResult> 
     runId,
     records,
     unreadable,
+    notDownloaded,
     groups: clusterBursts(records, t),
     cancelled: cancelled(),
   };
